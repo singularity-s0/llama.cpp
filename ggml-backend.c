@@ -809,16 +809,16 @@ static ggml_backend_t sched_backend_from_cur(ggml_backend_sched_t sched, struct 
             break;
         }
         ggml_backend_t src_backend = get_buffer_backend(sched, src->buffer);
-        if (src_backend != NULL) {
+        //if (src_backend != NULL) {
             int src_prio = sched_backend_prio(sched, src_backend);
             size_t src_size = ggml_nbytes(src);
-            if (src_prio < cur_prio && src_size >= cur_size) {
+            if (/*src_prio < cur_prio &&*/ src_size >= cur_size) {
                 cur_prio = src_prio;
                 cur_size = src_size;
                 cur_backend = src_backend;
                 SET_CAUSE(node, "1.src%d", i);
             }
-        }
+        //}
     }
     return cur_backend;
 }
@@ -1025,9 +1025,21 @@ static void sched_split_graph(ggml_backend_sched_t sched, struct ggml_cgraph * g
             }
             ggml_tallocr_t src_allocr = node_allocr(src);
             if (src_allocr != node_allocr) {
-                int n_inputs = sched->splits[cur_split].n_inputs++;
-                GGML_ASSERT(n_inputs < GGML_MAX_SPLIT_INPUTS);
-                sched->splits[cur_split].inputs[n_inputs] = (struct ggml_tensor *)src;
+                // check if the input is already in the split
+                bool found = false;
+                for (int k = 0; k < sched->splits[cur_split].n_inputs; k++) {
+                    if (sched->splits[cur_split].inputs[k] == src) {
+                        found = true;
+                        break;
+                    }
+                }
+
+                if (!found) {
+                    int n_inputs = sched->splits[cur_split].n_inputs++;
+                    //printf("split %d input %d: %s (%s)\n", cur_split, n_inputs, src->name, ggml_backend_name(get_allocr_backend(sched, src_allocr)));
+                    GGML_ASSERT(n_inputs < GGML_MAX_SPLIT_INPUTS);
+                    sched->splits[cur_split].inputs[n_inputs] = (struct ggml_tensor *)src;
+                }
 
                 // create copies
                 size_t id = hash_id(src);
@@ -1316,6 +1328,7 @@ static void graph_init_tensor(struct ggml_hash_set hash_set, struct ggml_tensor 
 
     struct ggml_tensor * dst = node_copies[id];
     if (dst->view_src != NULL) {
+        graph_init_tensor(hash_set, node_copies, node_init, src->view_src);
         ggml_backend_view_init(dst->view_src->buffer, dst);
     }
     else {
