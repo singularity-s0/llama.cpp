@@ -1,0 +1,16 @@
+{
+  "object": {
+    "pins": [
+      {
+        "package": "ggml",
+        "repositoryURL": "https://github.com/ggerganov/ggml.git",
+        "state": {
+          "branch": "master",
+          "revision": "8bf3f009e653f6bdac893c4bb6441f88ee55fe48",
+          "version": null
+        }
+      }
+    ]
+  },
+  "version": 1
+}
